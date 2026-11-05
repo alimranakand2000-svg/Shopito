@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My Shop</title>
+<style>
+:root{--bg:#f5f7f6;--card:#fff;--ink:#10231f;--mut:#5d6f6a;--pri:#0f766e;--pri-t:#fff;--acc:#f59e0b;--bd:#d9e2df;--bad:#b91c1c;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1a18;--card:#16262398;--ink:#e8f1ee;--mut:#9bb0aa;--pri:#2dd4bf;--pri-t:#06221e;--bd:#2a3f3a;--bad:#f87171}}
+:root[data-theme="dark"]{--bg:#0e1a18;--card:#162623;--ink:#e8f1ee;--mut:#9bb0aa;--pri:#2dd4bf;--pri-t:#06221e;--bd:#2a3f3a;--bad:#f87171}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Trebuchet MS",Verdana,sans-serif}
+header{position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);border-bottom:1px solid var(--bd);z-index:5;display:flex;align-items:center;gap:8px;padding:10px 14px;flex-wrap:wrap}
+h1{font-size:20px;margin:0;flex:1;font-family:Georgia,serif}
+nav{display:flex;gap:6px;flex-wrap:wrap}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;border:1px solid var(--bd);background:var(--card);padding:8px 12px;border-radius:8px}
+button.p{background:var(--pri);color:var(--pri-t);border-color:var(--pri);font-weight:600}
+button.d{color:var(--bad)}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+input,select{width:100%;padding:9px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--card);margin:4px 0 10px}
+main{max-width:960px;margin:0 auto;padding:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px}
+.emo{font-size:44px;text-align:center}.ph{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;display:block;margin-bottom:6px}.th{width:48px;height:48px;object-fit:cover;border-radius:6px;display:block;margin-bottom:4px}
+.price{font-weight:700;color:var(--pri)}.low{color:var(--bad);font-size:13px}.mut{color:var(--mut);font-size:14px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bd)}
+.sc{overflow-x:auto}table{border-collapse:collapse;width:100%;min-width:560px}td,th{padding:6px;border-bottom:1px solid var(--bd);text-align:left}td input{margin:0;min-width:70px}
+.modal{position:fixed;inset:0;background:#0008;display:none;align-items:center;justify-content:center;padding:14px;z-index:10}
+.modal.on{display:flex}.box{background:var(--bg);border-radius:14px;padding:16px;width:100%;max-width:420px;max-height:90vh;overflow:auto}
+.pay{display:flex;gap:8px;align-items:flex-start;border:1px solid var(--bd);border-radius:10px;padding:10px;margin-bottom:8px;cursor:pointer}.pay input{width:auto;margin:4px 0}
+footer{border-top:1px solid var(--bd);padding:16px 14px;text-align:center;color:var(--mut)}footer a{color:var(--pri)}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;display:none;z-index:20}
+.note{background:var(--card);border-left:4px solid var(--acc);padding:8px 10px;font-size:13px;margin:10px 0;border-radius:6px}
+</style></head><body>
+<header><h1 id="shopName">My Shop</h1>
+<nav><button onclick="show('shop')">Shop</button><button onclick="show('cart')">Cart (<span id="cc">0</span>)</button><button id="acctBtn" onclick="acct()">Sign in</button><button onclick="show('admin')">Admin</button></nav></header>
+<main id="view"></main>
+<footer id="foot"></footer>
+<div class="modal" id="modal"><div class="box" id="box"></div></div>
+<div class="toast" id="toast"></div>
+<script>
+const K='myshop_v1';
+const seed={settings:{name:'My Shop',phone:'+8801700000000',email:'support@myshop.com',pin:'1234',cur:'৳'},
+products:[{id:1,n:'Rice 5kg',e:'🍚',p:420,s:30},{id:2,n:'Cooking oil 1L',e:'🛢️',p:185,s:12},{id:3,n:'Tea 500g',e:'🍵',p:240,s:4},{id:4,n:'Eggs (dozen)',e:'🥚',p:150,s:0}],
+orders:[],user:null,isAdmin:false};
+let S=load(),cart={},tab='shop';
+function load(){try{return JSON.parse(localStorage.getItem(K))||structuredClone(seed)}catch(e){return structuredClone(seed)}}
+function save(){try{localStorage.setItem(K,JSON.stringify(S))}catch(e){toast('Storage is full. Delete some photos.')}}
+const pic=p=>p.img?`<img class="ph" src="${p.img}" alt="${esc(p.n)}">`:`<div class="emo">${p.e}</div>`;
+function photo(id,f){if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const m=480,k=Math.min(1,m/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*k;c.height=im.height*k;c.getContext('2d').drawImage(im,0,0,c.width,c.height);S.products.find(x=>x.id===id).img=c.toDataURL('image/jpeg',.75);save();render();toast('Photo saved')};im.onerror=()=>toast('Could not read that image');im.src=r.result};r.readAsDataURL(f)}
+function rmPhoto(id){delete S.products.find(x=>x.id===id).img;save();render()}
+const $=id=>document.getElementById(id),cur=()=>S.settings.cur;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function toast(t){const x=$('toast');x.textContent=t;x.style.display='block';clearTimeout(x._t);x._t=setTimeout(()=>x.style.display='none',2200)}
+function show(t){tab=t;render()}
+function open_(h){$('box').innerHTML=h;$('modal').classList.add('on')}
+function close_(){$('modal').classList.remove('on')}
+$('modal').onclick=e=>{if(e.target.id==='modal')close_()};
+function render(){
+ $('shopName').textContent=S.settings.name;document.title=S.settings.name;
+ $('cc').textContent=Object.values(cart).reduce((a,b)=>a+b,0);
+ $('acctBtn').textContent=S.user?S.user.name:'Sign in';
+ $('foot').innerHTML=`Need help? Call <a href="tel:${esc(S.settings.phone)}">${esc(S.settings.phone)}</a> or email <a href="mailto:${esc(S.settings.email)}">${esc(S.settings.email)}</a>`;
+ $('view').innerHTML=({shop:vShop,cart:vCart,admin:vAdmin})[tab]();
+}
+function vShop(){return `<div class="grid">`+S.products.map(p=>`<div class="card">${pic(p)}<div>${esc(p.n)}</div><div class="price">${cur()}${p.p}</div>${p.s===0?'<div class="low">Out of stock</div>':p.s<=5?`<div class="low">Only ${p.s} left</div>`:`<div class="mut">${p.s} in stock</div>`}<button class="p" style="width:100%;margin-top:8px" ${p.s===0?'disabled':''} onclick="add(${p.id})">Add to cart</button></div>`).join('')+`</div>`}
+function add(id){const p=S.products.find(x=>x.id===id);if((cart[id]||0)>=p.s)return toast('No more stock available');cart[id]=(cart[id]||0)+1;render();toast('Added to cart')}
+function chg(id,d){const p=S.products.find(x=>x.id===id);const n=(cart[id]||0)+d;if(n<=0)delete cart[id];else if(n<=p.s)cart[id]=n;render()}
+const total=()=>Object.entries(cart).reduce((a,[id,q])=>a+q*S.products.find(x=>x.id==id).p,0);
+function vCart(){const it=Object.entries(cart);if(!it.length)return `<p>Your cart is empty. <button onclick="show('shop')">Browse products</button></p>`;
+ return `<h2>Your cart</h2>`+it.map(([id,q])=>{const p=S.products.find(x=>x.id==id);return `<div class="row"><span>${p.e} ${esc(p.n)}<br><span class="mut">${cur()}${p.p} each</span></span><span><button onclick="chg(${id},-1)">−</button> ${q} <button onclick="chg(${id},1)">+</button> <b>${cur()}${p.p*q}</b></span></div>`}).join('')+`<h3>Total: ${cur()}${total()}</h3><button class="p" onclick="checkout()">Checkout</button>`}
+function checkout(){const u=S.user||{};open_(`<h3>Checkout</h3><label>Full name<input id="cn" value="${esc(u.name||'')}"></label><label>Phone<input id="cp" type="tel" value="${esc(u.phone||'')}"></label><label>Delivery address<input id="ca"></label>
+<b>Payment method</b><label class="pay"><input type="radio" name="pm" value="cod" checked><span><b>Cash on delivery</b><br><span class="mut">Pay when you receive your order.</span></span></label>
+<label class="pay"><input type="radio" name="pm" value="online"><span><b>Pay online</b><br><span class="mut">Card or mobile banking.</span></span></label>
+<div class="note">Demo mode: no real payment is taken. Connect a payment provider to go live.</div>
+<h4>Total: ${cur()}${total()}</h4><button class="p" onclick="place()">Place order</button> <button onclick="close_()">Cancel</button>`)}
+function place(){const n=$('cn').value.trim(),ph=$('cp').value.trim(),a=$('ca').value.trim();if(!n||!ph||!a)return toast('Fill in name, phone and address');
+ const pm=document.querySelector('input[name=pm]:checked').value;
+ const items=Object.entries(cart).map(([id,q])=>{const p=S.products.find(x=>x.id==id);p.s-=q;return {n:p.n,q,p:p.p}});
+ const o={id:Date.now().toString().slice(-6),name:n,phone:ph,addr:a,pay:pm==='cod'?'Cash on delivery':'Paid online',items,total:total(),status:'New',date:new Date().toLocaleString()};
+ S.orders.unshift(o);save();cart={};close_();tab='shop';render();open_(`<h3>Order placed ✓</h3><p>Order #${o.id}. We will call ${esc(ph)} to confirm.</p><button class="p" onclick="close_()">Done</button>`)}
+function acct(){if(S.user)return open_(`<h3>${esc(S.user.name)}</h3><p class="mut">Signed in with ${esc(S.user.via)}</p><button class="d" onclick="S.user=null;save();close_();render()">Sign out</button> <button onclick="close_()">Close</button>`);
+ open_(`<h3>Sign in or sign up</h3><button style="width:100%;margin-bottom:8px" onclick="social('Google')">Continue with Google</button><button style="width:100%;margin-bottom:8px" onclick="social('Facebook')">Continue with Facebook</button><hr style="border-color:var(--bd)">
+<label>Phone number<input id="lp" type="tel" placeholder="+880…"></label><button class="p" onclick="otp()">Send code</button>
+<div class="note">Demo mode: sign-in is simulated. Real Google, Facebook and phone login need a backend such as Firebase.</div>`)}
+function social(v){S.user={name:v+' user',via:v};save();close_();render();toast('Signed in with '+v)}
+function otp(){const p=$('lp').value.trim();if(p.length<7)return toast('Enter a valid phone number');
+ open_(`<h3>Enter code</h3><p class="mut">Demo code is 1234.</p><input id="oc" inputmode="numeric"><button class="p" onclick="vo('${esc(p)}')">Verify</button>`)}
+function vo(p){if($('oc').value!=='1234')return toast('Wrong code');S.user={name:p,phone:p,via:'phone'};save();close_();render()}
+function vAdmin(){
+ if(!S.isAdmin)return `<div class="card" style="max-width:320px"><h3>Owner login</h3><input id="pin" type="password" placeholder="PIN (default 1234)"><button class="p" onclick="if($('pin').value===S.settings.pin){S.isAdmin=true;render()}else toast('Wrong PIN')">Open admin</button></div>`;
+ const s=S.settings;
+ return `<h2>Stock and prices</h2><div class="sc"><table><tr><th>Photo</th><th>Product</th><th>Price</th><th>Stock</th><th></th></tr>`+S.products.map(p=>`<tr><td>${p.img?`<img class="th" src="${p.img}" alt=""><button class="d" onclick="rmPhoto(${p.id})">Remove</button>`:`<label class="mut">${p.e}<input type="file" accept="image/*" onchange="photo(${p.id},this.files[0])"></label>`}</td><td><input value="${esc(p.n)}" onchange="up(${p.id},'n',this.value)"></td><td><input type="number" min="0" value="${p.p}" onchange="up(${p.id},'p',+this.value)"></td><td><input type="number" min="0" value="${p.s}" onchange="up(${p.id},'s',+this.value)"></td><td><button class="d" onclick="del(${p.id})">Delete</button></td></tr>`).join('')+`</table></div><p><button class="p" onclick="addP()">Add product</button></p>
+<h2>Orders</h2>`+(S.orders.length?S.orders.map((o,i)=>`<div class="card" style="margin-bottom:8px"><b>#${o.id}</b> · ${esc(o.date)}<br>${esc(o.name)}, ${esc(o.phone)}<br>${esc(o.addr)}<br>${o.items.map(x=>esc(x.n)+' ×'+x.q).join(', ')}<br><b>${cur()}${o.total}</b> · ${o.pay}<br><select onchange="S.orders[${i}].status=this.value;save()">${['New','Packed','Shipped','Delivered','Cancelled'].map(x=>`<option ${x===o.status?'selected':''}>${x}</option>`).join('')}</select></div>`).join(''):'<p class="mut">No orders yet.</p>')+
+`<h2>Shop settings</h2><label>Shop name<input value="${esc(s.name)}" onchange="st('name',this.value)"></label><label>Support phone<input value="${esc(s.phone)}" onchange="st('phone',this.value)"></label><label>Support email<input value="${esc(s.email)}" onchange="st('email',this.value)"></label><label>Currency symbol<input value="${esc(s.cur)}" onchange="st('cur',this.value)"></label><label>Admin PIN<input value="${esc(s.pin)}" onchange="st('pin',this.value)"></label><button onclick="S.isAdmin=false;render()">Log out of admin</button>`}
+function up(id,k,v){S.products.find(x=>x.id===id)[k]=v;save();toast('Saved')}
+function st(k,v){S.settings[k]=v;save();render();toast('Saved')}
+function del(id){if(confirm('Delete this product?')){S.products=S.products.filter(x=>x.id!==id);delete cart[id];save();render()}}
+function addP(){S.products.push({id:Date.now(),n:'New product',e:'📦',p:0,s:0});save();render()}
+render();
+</script></body></html>
